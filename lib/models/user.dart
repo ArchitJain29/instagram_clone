@@ -9,15 +9,18 @@ class User {
   final String bio;
   final List followers;
   final List following;
+  final String fcmToken; // New field for FCM token
 
-  const User(
-      {required this.email,
-      required this.bio,
-      required this.followers,
-      required this.following,
-      required this.photoUrl,
-      required this.uid,
-      required this.username});
+  const User({
+    required this.email,
+    required this.bio,
+    required this.followers,
+    required this.following,
+    required this.photoUrl,
+    required this.uid,
+    required this.username,
+    required this.fcmToken, // Include FCM token in the constructor
+  });
 
   Map<String, dynamic> toJson() => {
         'username': username,
@@ -26,19 +29,23 @@ class User {
         'photoUrl': photoUrl,
         'bio': bio,
         'followers': followers,
-        'following': following
+        'following': following,
+        'fcmToken': fcmToken, // Include FCM token in the JSON data
       };
 
   static User fromSnap(DocumentSnapshot snap) {
     var snapshot = snap.data() as Map<String, dynamic>;
 
     return User(
-        email: snapshot['email'],
-        bio: snapshot['bio'],
-        followers: snapshot['followers'],
-        following: snapshot['following'],
-        photoUrl: snapshot['photoUrl'],
-        uid: snapshot['uid'],
-        username: snapshot['username']);
+      email: snapshot['email'],
+      bio: snapshot['bio'],
+      followers: snapshot['followers'],
+      following: snapshot['following'],
+      photoUrl: snapshot['photoUrl'],
+      uid: snapshot['uid'],
+      username: snapshot['username'],
+      fcmToken:
+          snapshot['fcmToken'] ?? '', // Handle the case when fcmToken is null
+    );
   }
 }

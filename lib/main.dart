@@ -1,8 +1,10 @@
 // import 'package:instagram_clone/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:instagram_clone/providers/user_provider.dart';
+import 'package:instagram_clone/resources/firebase_messgae.dart';
 import 'package:instagram_clone/screens/login_screen.dart';
 // import 'firebase_options.dart';
 import 'package:flutter/material.dart';
@@ -26,6 +28,7 @@ void main() async {
             appId: "1:825960438525:web:52aee48d31a9db56493c94"));
   } else {
     await Firebase.initializeApp();
+    await FirebaseApi().initNotification();
     runApp(const MyApp());
   }
 }

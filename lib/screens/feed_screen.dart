@@ -7,7 +7,7 @@ import 'package:line_icons/line_icon.dart';
 import 'package:local_auth/local_auth.dart';
 
 class FeedScreen extends StatefulWidget {
-  const FeedScreen({super.key});
+  const FeedScreen({Key? key});
 
   @override
   State<FeedScreen> createState() => _FeedScreenState();
@@ -16,15 +16,29 @@ class FeedScreen extends StatefulWidget {
 class _FeedScreenState extends State<FeedScreen> {
   late final LocalAuthentication auth;
   bool _supportState = false;
+  late final ScrollController _scrollController;
+  late List<Map<String, dynamic>> _posts;
+  late bool _isLoading;
+  late bool _hasMoreData;
+  late DocumentSnapshot<Map<String, dynamic>>? _lastDocument;
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     auth = LocalAuthentication();
     auth.isDeviceSupported().then((bool isSupported) => setState(() {
           _supportState = isSupported;
         }));
+
+    _scrollController = ScrollController();
+    _scrollController.addListener(_scrollListener);
+
+    _posts = [];
+    _isLoading = false;
+    _hasMoreData = true;
+    _lastDocument = null;
+
+    _loadMoreData();
   }
 
   @override
@@ -37,7 +51,6 @@ class _FeedScreenState extends State<FeedScreen> {
           'assets/ic_instagram.svg',
           color: primaryColor,
           height: 32,
-          // width: 20,
         ),
         actions: [
           InkWell(
@@ -50,26 +63,66 @@ class _FeedScreenState extends State<FeedScreen> {
           ),
         ],
       ),
-      body: StreamBuilder(
-        stream: FirebaseFirestore.instance
-            .collection('posts')
-            .orderBy('datePublished', descending: true)
-            .snapshots(),
-        builder: (context,
-            AsyncSnapshot<QuerySnapshot<Map<String, dynamic>>> snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(
-              child: CircularProgressIndicator(),
+      body: ListView.builder(
+        controller: _scrollController,
+        itemCount: _posts.length + (_hasMoreData ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index < _posts.length) {
+            return PostCard(
+              snap: _posts[index],
             );
+          } else {
+            // Loading indicator when more data is being fetched
+            return _isLoading
+                ? Center(child: CircularProgressIndicator())
+                : Container();
           }
-
-          return ListView.builder(
-              itemCount: snapshot.data!.docs.length,
-              itemBuilder: (context, index) => PostCard(
-                    snap: snapshot.data!.docs[index].data(),
-                  ));
         },
       ),
     );
+  }
+
+  void _scrollListener() {
+    if (_scrollController.offset >=
+            _scrollController.position.maxScrollExtent &&
+        !_scrollController.position.outOfRange &&
+        _hasMoreData &&
+        !_isLoading) {
+      _loadMoreData();
+    }
+  }
+
+  void _loadMoreData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    Query<Map<String, dynamic>> query = FirebaseFirestore.instance
+        .collection('posts')
+        .orderBy('datePublished', descending: true)
+        .limit(3);
+
+    if (_lastDocument != null) {
+      query = query.startAfterDocument(_lastDocument!);
+    }
+
+    QuerySnapshot<Map<String, dynamic>> snapshot = await query.get();
+
+    if (snapshot.docs.isNotEmpty) {
+      _lastDocument = snapshot.docs.last;
+      _posts.addAll(snapshot.docs.map((doc) => doc.data()));
+    } else {
+      _hasMoreData = false;
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 }
